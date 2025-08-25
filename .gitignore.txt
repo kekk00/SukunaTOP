@@ -1,25 +1,16 @@
-# Node.js
+# Node modules
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# Config / Credenziali
-auth_info_multi.json
-session.data.json
-*.sqlite
-*.db
-*.db-journal
+# Database
+db/
 
-# Dati bot (database locali)
-usersdb.json
-userspos.json
-gpdb.json
+# Logs
+*.log
 
-# Ambiente
-.env
-
-# Sistema
+# Sistema operativo
 .DS_Store
+Thumbs.db
+
+# Env files
+.env
 
