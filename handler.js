@@ -1,7 +1,15 @@
+/*
+axtral so che molto probabilmente stai leggendo questo, comunque questo messaggio l'ho scritto in tutti i file per darti fastidio. SUKUNAMD ON TOPP
+*/
+
+
+
+
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
-import schedule from 'node-schedule';
+
+
 
 const DB_FOLDER = './db';
 const PLUGIN_FOLDER = './plugins';
@@ -17,9 +25,10 @@ export function readDB(file) {
     const dbPath = path.join(DB_FOLDER, file);
     if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, '{}');
     try {
-        return JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    } catch {
-        console.log(`⚠️ DB ${file} vuoto o corrotto, ricreazione...`);
+        const data = fs.readFileSync(dbPath, 'utf-8');
+        return data.trim() ? JSON.parse(data) : {};
+    } catch (e) {
+        console.log(`⚠️ DB ${file} corrotto o vuoto. Rigenerato.`);
         fs.writeFileSync(dbPath, '{}');
         return {};
     }
@@ -33,7 +42,8 @@ export function writeDB(file, data) {
 
 // -------------------- AUTH --------------------
 export function saveState(state) {
-    fs.writeFileSync('./Sessione/creds.json', JSON.stringify(state, null, 2));
+    const filePath = path.join('./Sessione', 'creds.json');
+    fs.writeFileSync(filePath, JSON.stringify(state, null, 2));
 }
 
 // -------------------- PLUGINS --------------------
@@ -41,61 +51,65 @@ export async function loadPlugins() {
     const files = fs.readdirSync(PLUGIN_FOLDER).filter(f => f.endsWith('.js'));
     plugins = {};
     for (let file of files) {
-        delete import.meta.cache?.[file];
         const pl = await import(path.join(process.cwd(), PLUGIN_FOLDER, file));
-        if (pl.command) pl.command.forEach(cmd => plugins[cmd.toLowerCase()] = pl);
+        if (pl.command) {
+            pl.command.forEach(cmd => plugins[cmd.toLowerCase()] = pl);
+        }
     }
     console.log(chalk.green(`🔌 Plugin caricati: ${Object.keys(plugins).join(', ')}`));
 }
 
-export async function watchPlugins() {
+export function watchPlugins() {
     fs.watch(PLUGIN_FOLDER, { recursive: false }, () => loadPlugins());
-    await loadPlugins();
+    loadPlugins();
 }
 
 // -------------------- AGGIORNA DB --------------------
 export async function updateDB(sock, message) {
-    if (!message.message || (!message.message.conversation && !message.message.buttonsResponseMessage)) return;
+    try {
+        if (!message.message || (!message.message.conversation && !message.message.buttonsResponseMessage)) return;
 
-    const gpdb = readDB('gpdb.json');
-    const usersdb = readDB('usersdb.json');
-    const userspos = readDB('userspos.json');
+        const gpdb = readDB('gpdb.json');
+        const usersdb = readDB('usersdb.json');
+        const userspos = readDB('userspos.json');
 
-    const sender = message.key.participant || message.key.remoteJid;
-    const chatId = message.key.remoteJid;
+        const sender = message.pushName || message.key.participant?.split('@')[0];
+        const chatId = message.key.remoteJid;
 
-    // Ignora utenti che terminano con @g.us o @newsletter
-    if (!sender.endsWith('@g.us') && !sender.endsWith('@newsletter')) {
+        // --- UTENTE ---
         if (!usersdb[sender]) usersdb[sender] = { messages: 0 };
         usersdb[sender].messages += 1;
 
+        // --- POSIZIONE UTENTI ---
         Object.entries(usersdb)
             .sort((a,b)=>b[1].messages - a[1].messages)
             .forEach(([name], index)=> userspos[name]=index+1);
-    }
 
-    // Solo gruppi per gpdb
-    if (chatId.endsWith('@g.us')) {
-        let groupName = chatId;
-        let membersCount = '-';
-        try {
-            const metadata = await sock.groupMetadata(chatId);
-            groupName = metadata.subject || chatId;
-            membersCount = metadata.participants.length;
-        } catch(e) {
-            console.log('⚠️ Non è stato possibile recuperare i membri del gruppo:', chatId);
+        // --- GRUPPO ---
+        if (chatId.endsWith('@g.us')) {
+            let groupName = chatId;
+            let membersCount = '-';
+            try {
+                const metadata = await sock.groupMetadata(chatId);
+                groupName = metadata.subject || chatId;
+                membersCount = metadata.participants.length;
+            } catch(e) {
+                console.log('⚠️ Non è stato possibile recuperare i membri del gruppo:', chatId);
+            }
+
+            if (!gpdb[groupName]) gpdb[groupName] = { members: membersCount, messages: 0 };
+            else gpdb[groupName].members = membersCount;
+            gpdb[groupName].messages += 1;
         }
 
-        if (!gpdb[groupName]) gpdb[groupName] = { members: membersCount, messages: 0 };
-        else gpdb[groupName].members = membersCount;
-        gpdb[groupName].messages += 1;
+        writeDB('usersdb.json', usersdb);
+        writeDB('userspos.json', userspos);
+        writeDB('gpdb.json', gpdb);
+
+        console.log(chalk.yellow(`📝 Messaggio da ${sender} aggiornato in ${chatId}`));
+    } catch(e) {
+        console.log('⚠️ Errore aggiornando DB:', e.message);
     }
-
-    writeDB('usersdb.json', usersdb);
-    writeDB('userspos.json', userspos);
-    writeDB('gpdb.json', gpdb);
-
-    console.log(chalk.yellow(`📝 Messaggio da ${sender} aggiornato in ${chatId}`));
 }
 
 // -------------------- HANDLE MESSAGGI --------------------
@@ -114,25 +128,10 @@ export async function handleMessage(sock, message) {
         const plugin = plugins[cmd.toLowerCase()];
 
         if (plugin?.run) {
-            console.log(chalk.magenta(`⚡ Comando riconosciuto: !${cmd} da ${message.pushName || senderName(message)}`));
+            console.log(chalk.magenta(`⚡ Comando riconosciuto: !${cmd} da ${message.pushName || message.key.participant}`));
             await plugin.run(sock, message, args);
         }
     } catch(e) {
-        console.log('⚠️ Errore interno handleMessage:', e);
+        console.log('⚠️ Errore interno handleMessage:', e.message);
     }
 }
-
-// -------------------- PULIZIA AUTOMATICA --------------------
-export function scheduleCleanup() {
-    schedule.scheduleJob('0 0 */4 * *', () => {
-        const files = fs.readdirSync(DB_FOLDER).filter(f => !f.includes('creds.json'));
-        files.forEach(file => fs.unlinkSync(path.join(DB_FOLDER, file)));
-        console.log(chalk.red(`🧹 Pulizia automatica: rimossi ${files.length} file dal DB`));
-    });
-}
-
-// -------------------- HELPERS --------------------
-function senderName(msg) {
-    return msg.pushName || msg.key.participant?.split('@')[0];
-}
-
