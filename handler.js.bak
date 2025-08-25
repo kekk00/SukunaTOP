@@ -1,0 +1,77 @@
+// -------------------- AGGIORNA DB --------------------
+export async function updateDB(sock, message) {
+    try {
+        if (!message.message || (!message.message.conversation && !message.message.buttonsResponseMessage)) return;
+
+        const gpdb = readDB('gpdb.json');
+        const usersdb = readDB('usersdb.json');
+        const userspos = readDB('userspos.json');
+
+        const sender = message.key.participant || message.key.remoteJid;
+        const chatId = message.key.remoteJid;
+
+        // --- FILTRO: ignora gruppi e newsletter ---
+        if (sender.endsWith('@g.us') || sender.endsWith('@newsletter')) return;
+
+        // --- UTENTE ---
+        if (!usersdb[sender]) usersdb[sender] = { messages: 0 };
+        usersdb[sender].messages += 1;
+
+        // --- POSIZIONE UTENTI ---
+        Object.entries(usersdb)
+            .sort((a,b)=>b[1].messages - a[1].messages)
+            .forEach(([name], index)=> userspos[name]=index+1);
+
+        // --- GRUPPO ---
+        if (chatId.endsWith('@g.us')) {
+            let groupName = chatId;
+            let membersCount = '-';
+            try {
+                const metadata = await sock.groupMetadata(chatId);
+                groupName = metadata.subject || chatId;
+                membersCount = metadata.participants.length;
+            } catch(e) {
+                console.log('⚠️ Non è stato possibile recuperare i membri del gruppo:', chatId);
+            }
+
+            if (!gpdb[groupName]) gpdb[groupName] = { members: membersCount, messages: 0 };
+            else gpdb[groupName].members = membersCount;
+            gpdb[groupName].messages += 1;
+        }
+
+        writeDB('usersdb.json', usersdb);
+        writeDB('userspos.json', userspos);
+        writeDB('gpdb.json', gpdb);
+
+        console.log(chalk.yellow(`📝 Messaggio da ${sender} aggiornato in ${chatId}`));
+
+    } catch(e) {
+        console.log('⚠️ Errore aggiornando DB:', e);
+    }
+}
+
+// -------------------- HANDLE MESSAGGI --------------------
+export async function handleMessage(sock, message) {
+    try {
+        // Aggiorna DB
+        await updateDB(sock, message);
+
+        // --- RICONOSCI IL COMANDO ---
+        let text;
+        if (message.message?.conversation) text = message.message.conversation;
+        else if (message.message?.buttonsResponseMessage?.selectedButtonId) text = message.message.buttonsResponseMessage.selectedButtonId;
+        else return;
+
+        if (!text.startsWith('!')) return;
+
+        const [cmd, ...args] = text.slice(1).split(' ');
+        const plugin = plugins[cmd.toLowerCase()];
+
+        if (plugin?.run) {
+            console.log(chalk.magenta(`⚡ Comando riconosciuto: !${cmd} da ${message.pushName || message.key.participant}`));
+            await plugin.run(sock, message, args);
+        }
+    } catch (e) {
+        console.log('⚠️ Errore interno handleMessage:', e);
+    }
+}

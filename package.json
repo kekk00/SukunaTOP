@@ -1,0 +1,22 @@
+{
+  "name": "sukuna-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp bot sukuna",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node main.js",
+    "server": "node server.js"
+  },
+  "author": "Kekko",
+  "license": "MIT",
+  "dependencies": {
+  "@whiskeysockets/baileys": "github:Itsukichann/Baileys",
+  "chalk": "^5.4.1",
+  "canvas": "^2.11.2",
+  "qrcode-terminal": "^0.12.0",
+  "node-schedule": "^2.1.1",
+  "express": "^4.18.1"
+  }
+}
+

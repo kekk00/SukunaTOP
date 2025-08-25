@@ -1,0 +1,41 @@
+/*
+mortadella a frattaminore
+*/
+import { readDB } from '../handler.js';
+
+export const command = ['topusers'];
+
+export async function run(sock, message, args) {
+    const usersdb = readDB('usersdb.json');
+    const sorted = Object.entries(usersdb)
+        .sort((a, b) => b[1].messages - a[1].messages)
+        .slice(0, 10);
+
+    let text = '📩 Top Users\n\n';
+    const medals = ['🥇','🥈','🥉','🏅','🏅','🏅','🏅','🏅','🏅','🏅'];
+
+    // raccogliamo le mention
+    const mentions = [];
+
+    sorted.forEach(([jid, info], i) => {
+        const userTag = `@${jid.split('@')[0]}`;
+        mentions.push(jid);
+        text += `${medals[i] || '🏅'} ${i + 1}. ${userTag}\n💌 ${info.messages}\n\n`;
+    });
+
+    const buttons = [
+        { buttonId: '!topgruppi', buttonText: { displayText: '👥️ Top Gruppi' }, type: 1 },
+        { buttonId: '!profilo', buttonText: { displayText: '🌟 Info Utente' }, type: 1 }
+    ];
+
+    await sock.sendMessage(
+        message.key.remoteJid,
+        {
+            text,
+            buttons,
+            headerType: 1,
+            mentions
+        },
+        { quoted: message }
+    );
+}

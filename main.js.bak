@@ -1,0 +1,37 @@
+import { makeWASocket, useSingleFileAuthState, fetchLatestBaileysVersion, DisconnectReason } from '@whiskeysockets/baileys';
+import { saveState, watchPlugins, handleMessage } from './handler.js';
+
+const authFile = './Sessione/creds.json';
+const { state } = useSingleFileAuthState(authFile);
+
+async function startBot() {
+    const { version } = await fetchLatestBaileysVersion();
+    const sock = makeWASocket({
+        printQRInTerminal: true,
+        auth: state,
+        version
+    });
+
+    sock.ev.on('creds.update', saveState);
+
+    console.log('🤖 𝐒𝐔𝐊𝐔𝐍𝐀⁶⁶⁶-𝐁𝐨𝐭 avviato!');
+    watchPlugins();
+
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+        if (!messages || !messages[0].message || messages[0].key.fromMe) return;
+        try {
+            await handleMessage(sock, messages[0]);
+        } catch (e) {
+            console.log('❌ Errore nel gestire il messaggio:', e.message);
+        }
+    });
+
+    sock.ev.on('connection.update', (update) => {
+        if (update.connection === 'close') {
+            const reason = update.lastDisconnect?.error?.output?.statusCode;
+            if (reason !== DisconnectReason.loggedOut) startBot();
+        }
+    });
+}
+
+startBot();

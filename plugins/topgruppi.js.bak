@@ -1,0 +1,36 @@
+import { readDB } from '../handler.js';
+
+export const command = ['topgruppi'];
+
+export async function run(sock, message, args) {
+    const gpdb = readDB('gpdb.json');
+
+    // Ordina i gruppi per numero di messaggi
+    const sortedGroups = Object.entries(gpdb)
+        .sort((a, b) => b[1].messages - a[1].messages)
+        .slice(0, 10);
+
+    let text = '📩 Top Gruppi\n\n';
+    const medals = ['🥇', '🥈', '🥉'];
+
+    sortedGroups.forEach(([name, data], i) => {
+        const medal = medals[i] || `🏅 ${i + 1}`;
+        text += `${medal}${i + 1}. ${name}\n💌 ${data.messages} | 👥 ${data.members}\n\n`;
+    });
+
+    // Creiamo bottoni per altri comandi
+    const buttons = [
+        { buttonId: '!topusers', buttonText: { displayText: '👤 Top Users' }, type: 1 },
+        { buttonId: '!profilo', buttonText: { displayText: '🌟 Info Utente' }, type: 1 }
+    ];
+
+    const buttonMessage = {
+        text,
+        footer: '𝐒𝐔𝐊𝐔𝐍𝐀⁶⁶⁶-𝐁𝐨𝐭',
+        buttons,
+        headerType: 1
+    };
+
+    // Invia il messaggio citando quello originale
+    await sock.sendMessage(message.key.remoteJid, buttonMessage, { quoted: message });
+}
