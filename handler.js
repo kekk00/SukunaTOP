@@ -2,53 +2,51 @@
 axtral so che molto probabilmente stai leggendo questo, comunque questo messaggio l'ho scritto in tutti i file per darti fastidio. SUKUNAMD ON TOPP
 */
 
-
-
-
-import fs from 'fs';
+import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import chalk from 'chalk';
-
-
 
 const DB_FOLDER = './db';
 const PLUGIN_FOLDER = './plugins';
 let plugins = {};
 
 // --- CREAZIONE CARTELLE ---
-if (!fs.existsSync(DB_FOLDER)) fs.mkdirSync(DB_FOLDER, { recursive: true });
-if (!fs.existsSync('./Sessione')) fs.mkdirSync('./Sessione');
-if (!fs.existsSync(PLUGIN_FOLDER)) fs.mkdirSync(PLUGIN_FOLDER);
+if (!fsSync.existsSync(DB_FOLDER)) fsSync.mkdirSync(DB_FOLDER, { recursive: true });
+if (!fsSync.existsSync('./Sessione')) fsSync.mkdirSync('./Sessione');
+if (!fsSync.existsSync(PLUGIN_FOLDER)) fsSync.mkdirSync(PLUGIN_FOLDER);
 
 // -------------------- DATABASE HELPERS --------------------
-export function readDB(file) {
+export async function readDB(file) {
     const dbPath = path.join(DB_FOLDER, file);
-    if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, '{}');
     try {
-        const data = fs.readFileSync(dbPath, 'utf-8');
+        if (!fsSync.existsSync(dbPath)) {
+            await fs.writeFile(dbPath, '{}');
+        }
+        const data = await fs.readFile(dbPath, 'utf-8');
         return data.trim() ? JSON.parse(data) : {};
     } catch (e) {
         console.log(`⚠️ DB ${file} corrotto o vuoto. Rigenerato.`);
-        fs.writeFileSync(dbPath, '{}');
+        await fs.writeFile(dbPath, '{}');
         return {};
     }
 }
 
-export function writeDB(file, data) {
+export async function writeDB(file, data) {
     const dbPath = path.join(DB_FOLDER, file);
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
     console.log(chalk.blueBright(`💾 DB ${file} aggiornato!`));
 }
 
 // -------------------- AUTH --------------------
 export function saveState(state) {
     const filePath = path.join('./Sessione', 'creds.json');
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2));
+    fsSync.writeFileSync(filePath, JSON.stringify(state, null, 2));
 }
 
 // -------------------- PLUGINS --------------------
 export async function loadPlugins() {
-    const files = fs.readdirSync(PLUGIN_FOLDER).filter(f => f.endsWith('.js'));
+    const files = fsSync.readdirSync(PLUGIN_FOLDER).filter(f => f.endsWith('.js'));
     plugins = {};
     for (let file of files) {
         const pl = await import(path.join(process.cwd(), PLUGIN_FOLDER, file));
@@ -60,7 +58,7 @@ export async function loadPlugins() {
 }
 
 export function watchPlugins() {
-    fs.watch(PLUGIN_FOLDER, { recursive: false }, () => loadPlugins());
+    fsSync.watch(PLUGIN_FOLDER, { recursive: false }, () => loadPlugins());
     loadPlugins();
 }
 
@@ -69,21 +67,26 @@ export async function updateDB(sock, message) {
     try {
         if (!message.message || (!message.message.conversation && !message.message.buttonsResponseMessage)) return;
 
-        const gpdb = readDB('gpdb.json');
-        const usersdb = readDB('usersdb.json');
-        const userspos = readDB('userspos.json');
+        const usersdb = await readDB('usersdb.json');
+        const userspos = await readDB('userspos.json');
+        const gpdb = await readDB('gpdb.json');
 
-        const sender = message.pushName || message.key.participant?.split('@')[0];
+        const senderJid = message.key.participant || message.key.remoteJid;
+        const senderName = message.pushName || senderJid.split('@')[0];
         const chatId = message.key.remoteJid;
 
         // --- UTENTE ---
-        if (!usersdb[sender]) usersdb[sender] = { messages: 0 };
-        usersdb[sender].messages += 1;
+        // Usa il JID come chiave e salva il nome e i messaggi
+        if (!usersdb[senderJid]) usersdb[senderJid] = { name: senderName, messages: 0 };
+        usersdb[senderJid].messages += 1;
+        // Aggiorna anche il nome in caso sia cambiato
+        usersdb[senderJid].name = senderName;
 
         // --- POSIZIONE UTENTI ---
         Object.entries(usersdb)
+            .filter(([jid]) => !jid.endsWith('@g.us') && !jid.endsWith('@newsletter'))
             .sort((a,b)=>b[1].messages - a[1].messages)
-            .forEach(([name], index)=> userspos[name]=index+1);
+            .forEach(([jid], index)=> userspos[jid] = index+1);
 
         // --- GRUPPO ---
         if (chatId.endsWith('@g.us')) {
@@ -102,11 +105,11 @@ export async function updateDB(sock, message) {
             gpdb[groupName].messages += 1;
         }
 
-        writeDB('usersdb.json', usersdb);
-        writeDB('userspos.json', userspos);
-        writeDB('gpdb.json', gpdb);
+        await writeDB('usersdb.json', usersdb);
+        await writeDB('userspos.json', userspos);
+        await writeDB('gpdb.json', gpdb);
 
-        console.log(chalk.yellow(`📝 Messaggio da ${sender} aggiornato in ${chatId}`));
+        console.log(chalk.yellow(`📝 Messaggio da ${senderName} (${senderJid}) aggiornato in ${chatId}`));
     } catch(e) {
         console.log('⚠️ Errore aggiornando DB:', e.message);
     }
@@ -115,14 +118,16 @@ export async function updateDB(sock, message) {
 // -------------------- HANDLE MESSAGGI --------------------
 export async function handleMessage(sock, message) {
     try {
-        await updateDB(sock, message);
-
         let text;
         if (message.message?.conversation) text = message.message.conversation;
         else if (message.message?.buttonsResponseMessage?.selectedButtonId) text = message.message.buttonsResponseMessage.selectedButtonId;
         else return;
 
-        if (!text.startsWith('!')) return;
+        if (!text.startsWith('!')) {
+            // Se non è un comando, aggiorna comunque il DB con le info del messaggio
+            await updateDB(sock, message);
+            return;
+        }
 
         const [cmd, ...args] = text.slice(1).split(' ');
         const plugin = plugins[cmd.toLowerCase()];
@@ -135,3 +140,4 @@ export async function handleMessage(sock, message) {
         console.log('⚠️ Errore interno handleMessage:', e.message);
     }
 }
+

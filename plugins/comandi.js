@@ -1,7 +1,7 @@
 /*
 axtral so che molto probabilmente stai leggendo questo, comunque questo messaggio l'ho scritto in tutti i file per darti fastidio. SUKUNAMD ON TOPP
 */
-export const command = ['comandi'];
+export const command = ['comandi','menu'];
 
 export async function run(sock, message, args) {
     try {
@@ -13,13 +13,15 @@ export async function run(sock, message, args) {
         const buttons = [
             { buttonId: '!topgruppi', buttonText: { displayText: '👥️ Top Gruppi' }, type: 1 },
             { buttonId: '!topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
-            { buttonId: '!profilo', buttonText: { displayText: '🌟 Info Utente' }, type: 1 },
-            { buttonId: '!db', buttonText: { displayText: '🔰 Database' }, type: 1 }
+            { buttonId: '!mipisciosotto', buttonText: { displayText: '🌟 Info Utente' }, type: 1 },
+            { buttonId: '!db', buttonText: { displayText: '🔰 Database' }, type: 1 },
+            { buttonId: '!ping', buttonText: { displayText: '🏓 Ping'}, type: 1 },
+            { buttonId: '!sito', buttonText: { displayText: '🌐 Sito'}, type: 1 }
         ];
 
         const buttonMessage = {
             image: { url: imageUrl },
-            caption: `📜 *Comandi disponibili:*\n\n1️⃣ 👥️ Top Gruppi\n2️⃣ 👤 Top User\n3️⃣ 🌟 Info Utente\n4️⃣ 🔰 Database`,
+            caption: `📜 *Comandi disponibili:*`,
             footer: '𝐒𝐔𝐊𝐔𝐍𝐀⁶⁶⁶-𝐁𝐨𝐭',
             buttons: buttons,
             headerType: 4, // 4 = immagine con bottoni
