@@ -7,7 +7,7 @@ export async function run(sock, message, args) {
     const text = "⛔️ Stiamo ancora lavorando su questa funzione! Attendi e arriverà qualcosa di fantastico! 🎉";
 
     const buttons = [
-        { buttonId: '!comandi', buttonText: { displayText: '♻️ Lista Comandi' }, type: 1 },
+        { buttonId: '/comandi', buttonText: { displayText: '♻️ Lista Comandi' }, type: 1 },
 ]
 
     await sock.sendMessage(message.key.remoteJid, {

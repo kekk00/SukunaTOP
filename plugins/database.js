@@ -2,6 +2,8 @@
 axtral so che molto probabilmente stai leggendo questo, comunque questo messaggio l'ho scritto in tutti i file per darti fastidio. SUKUNAMD ON TOPP
 */
 import os from 'os';
+// Importiamo la funzione per leggere i database
+import { readDB } from '../handler.js';
 
 export const command = ['database', 'db'];
 
@@ -26,18 +28,31 @@ export async function run(sock, message, args) {
         const totalMem = (os.totalmem()/1024/1024/1024).toFixed(2);
         const freeMem = (os.freemem()/1024/1024/1024).toFixed(2);
 
-        const systemInfo = `📊 *Database & Info Bot*\n\n` +
+        // Legge i database per contare utenti e gruppi
+        const usersdb = readDB('usersdb.json');
+        const gpdb = readDB('gpdb.json');
+        
+        // Calcola il numero di utenti totali (escludendo i gruppi salvati come utenti)
+        const totalUsers = Object.keys(usersdb).filter(jid => !jid.endsWith('@g.us')).length;
+        
+        // Calcola il numero di gruppi registrati
+        const totalGroups = Object.keys(gpdb).length;
+
+        // Costruisce il messaggio con tutte le informazioni
+        const systemInfo = `📊 *Stato e Informazioni Bot*\n\n` +
+            `• 🤖 Bot: Online\n` +
+            `• 🕒 Uptime: ${uptimeStr}\n` +
+            `• 🏓 Ping: ${ping}ms\n\n` +
+            `*Info Sistema*\n` +
             `• 🖥 Sistema: ${os.type()} ${os.release()}\n` +
             `• 💻 CPU: ${cpuModel}\n` +
-            `• 🕒 Uptime Bot: ${uptimeStr}\n` +
-            `• 🏓 Ping: 0.0${ping}ms\n` +
             `• 🌐 Memoria Totale: ${totalMem} GB\n` +
             `• 🌐 Memoria Libera: ${freeMem} GB`;
 
         const buttons = [
             { buttonId: '!topgruppi', buttonText: { displayText: '👥️ Top Gruppi' }, type: 1 },
             { buttonId: '!topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
-            { buttonId: '!info', buttonText: { displayText: '🌟 Info Utente' }, type: 1 },
+            { buttonId: '!mipisciosotto', buttonText: { displayText: '🌟 Info Utente' }, type: 1 },
         ];
 
         const buttonMessage = {

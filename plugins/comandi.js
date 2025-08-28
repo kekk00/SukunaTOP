@@ -11,12 +11,12 @@ export async function run(sock, message, args) {
         const imageUrl = 'https://i.ibb.co/PZMDGcS0/c8756687815f6b0c1ee2a41b6f2c5e99.jpg';
 
         const buttons = [
-            { buttonId: '!topgruppi', buttonText: { displayText: '👥️ Top Gruppi' }, type: 1 },
-            { buttonId: '!topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
-            { buttonId: '!mipisciosotto', buttonText: { displayText: '🌟 Info Utente' }, type: 1 },
-            { buttonId: '!db', buttonText: { displayText: '🔰 Database' }, type: 1 },
-            { buttonId: '!ping', buttonText: { displayText: '🏓 Ping'}, type: 1 },
-            { buttonId: '!sito', buttonText: { displayText: '🌐 Sito'}, type: 1 }
+            { buttonId: '/topgruppi', buttonText: { displayText: '👥️ Top Gruppi' }, type: 1 },
+            { buttonId: '/topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
+            { buttonId: '/mipisciosotto', buttonText: { displayText: '🌟 Info Utente' }, type: 1 },
+            { buttonId: '/db', buttonText: { displayText: '🔰 Database' }, type: 1 },
+            { buttonId: '/ping', buttonText: { displayText: '🏓 Ping'}, type: 1 },
+            { buttonId: '/sito', buttonText: { displayText: '🌐 Sito'}, type: 1 }
         ];
 
         const buttonMessage = {

@@ -53,8 +53,8 @@ export async function run(sock, message) {
 
         // Bottoni
         const buttons = [
-            { buttonId: '!topusers', buttonText: { displayText: '👤 Top Users' }, type: 1 },
-            { buttonId: '!info', buttonText: { displayText: '🌟 Info Utente' }, type: 1 }
+            { buttonId: '/topusers', buttonText: { displayText: '👤 Top Users' }, type: 1 },
+            { buttonId: '/info', buttonText: { displayText: '🌟 Info Utente' }, type: 1 }
         ];
 
         // Invio finale

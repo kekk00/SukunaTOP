@@ -123,8 +123,8 @@ export async function run(sock, message, args) {
     text += `💌 Messaggi totali: ${totalMessages}\n`;
 
     const buttons = [
-        { buttonId: '!topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
-        { buttonId: '!profilo', buttonText: { displayText: '🌟 Info Utente' }, type: 1 }
+        { buttonId: '/topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
+        { buttonId: '/profilo', buttonText: { displayText: '🌟 Info Utente' }, type: 1 }
     ];
 
     await sock.sendMessage(groupJid, {

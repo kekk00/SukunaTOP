@@ -103,9 +103,9 @@ export async function run(sock, message, args) {
     text += `🏆 Posizione: ${posizione || 'N/D'}\n`;
 
     const buttons = [
-        { buttonId: '!topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
-        { buttonId: '!topgruppi', buttonText: { displayText: '👥 Top Gruppi' }, type: 1 },
-        { buttonId: '!infogruppo', buttonText: { displayText: '👥 Info Gruppo'}, type: 1 }
+        { buttonId: '/topusers', buttonText: { displayText: '👤 Top User' }, type: 1 },
+        { buttonId: '/topgruppi', buttonText: { displayText: '👥 Top Gruppi' }, type: 1 },
+        { buttonId: '/infogruppo', buttonText: { displayText: '👥 Info Gruppo'}, type: 1 }
     ];
 
     // Invia il messaggio con l'immagine, la didascalia e tagga l'utente
